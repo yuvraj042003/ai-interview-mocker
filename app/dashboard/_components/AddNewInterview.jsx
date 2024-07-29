@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useUser } from '@clerk/nextjs';
 import moment from 'moment';
 import { MockInterview } from '@/utils/schema';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 const AddNewInterview = () => {
   const [openDialog, setOpenDialog] = useState(false);

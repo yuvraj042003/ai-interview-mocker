@@ -1,16 +1,16 @@
-"use client"
-import React, { useEffect, useState } from 'react'
-import Webcam from 'react-webcam'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
+"use client";
+import React, { useEffect, useState } from 'react';
+import Webcam from 'react-webcam';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 import useSpeechToText from 'react-hook-speech-to-text';
-import { Mic, StopCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { chatSession } from '@/utils/GeminiAIModel'
-import db from '@/utils/db'
-import { UserAnswer } from '@/utils/schema'
-import { useUser } from '@clerk/nextjs'
-import moment from 'moment'
+import { Mic, StopCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { chatSession } from '@/utils/GeminiAIModel';
+import db from '@/utils/db';
+import { UserAnswer } from '@/utils/schema';
+import { useUser } from '@clerk/nextjs';
+import moment from 'moment';
 
 function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuestionIndex, setActiveQuestionIndex }) {
   const [userAnswer, setUserAnswer] = useState('');
@@ -21,6 +21,7 @@ function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuest
     interimResult,
     isRecording,
     results,
+    setResults,
     startSpeechToText,
     stopSpeechToText,
   } = useSpeechToText({
@@ -34,26 +35,33 @@ function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuest
     }
   }, [results]);
 
-  const SaveUserAnswer = async () => {
-    if (isRecording) {
-      setLoading(true);
-      stopSpeechToText();
-      if (userAnswer?.length < 10) {
-        setLoading(false);
-        toast.error('Error while saving your answer, Please Record again.');
-        return;
-      }
-      const feedbackPrompt = `Question: ${mockInterviewQuestion[activeQuestionIndex].Question}, User Answer: ${userAnswer}. Please give us the rating for answer and feedback as area of improvement if any in just 3 to 5 lines to improve it in JSON format with rating field and feedback field.`;
+  useEffect(() => {
+    if (!isRecording && userAnswer.length >= 10) {
+      UpdateUserAnswer();
+    }
+  }, [isRecording]);
 
+  const StartStopRecording = async () => {
+    if (isRecording) {
+      stopSpeechToText();
+    } else {
+      startSpeechToText();
+    }
+  };
+
+  const UpdateUserAnswer = async () => {
+    setLoading(true);
+    const feedbackPrompt = `Question: ${mockInterviewQuestion[activeQuestionIndex].Question}, User Answer: ${userAnswer}. Please give us the rating for answer and feedback as area of improvement if any in just 3 to 5 lines to improve it in JSON format with rating field and feedback field.`;
+
+    try {
       const result = await chatSession.sendMessage(feedbackPrompt);
       const mockJsonResp = (await result.response.text()).replace('```json', '').replace('```', '');
-      console.log(mockJsonResp);
       const JsonFeedbackResp = JSON.parse(mockJsonResp);
 
-      const resp = await db.insert(UserAnswer).values({
+     const resp =  await db.insert(UserAnswer).values({
         mockIdRef: interviewData?.mockId,
         question: mockInterviewQuestion[activeQuestionIndex].Question,
-        correctAns: mockInterviewQuestion[activeQuestionIndex].answer,
+        correctAns: mockInterviewQuestion[activeQuestionIndex].Answer,
         userAns: userAnswer,
         feedback: JsonFeedbackResp?.feedback,
         rating: JsonFeedbackResp?.rating,
@@ -61,16 +69,19 @@ function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuest
         createdAt: moment().format('DD-MM-YYYY'),
       });
 
-      if (resp) {
+      if(resp){
         toast.success('User Answer recorded Successfully');
+        setUserAnswer('');
+        setResults([]);
 
       }
-      setUserAnswer('')
+      setResults([]);
+    } catch (error) {
+      toast.error('Error while saving your answer, Please Record again.');
+    } finally {
       setLoading(false);
-    } else {
-      startSpeechToText();
     }
-  }
+  };
 
   return (
     <div className='flex flex-col items-center justify-center'>
@@ -88,7 +99,7 @@ function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuest
         <div className='absolute bottom-5 flex gap-4' style={{ zIndex: 20 }}>
           <Button 
             variant="outline" 
-            onClick={SaveUserAnswer}
+            onClick={StartStopRecording}
             disabled={loading}
           >
             {isRecording ? (
@@ -101,12 +112,7 @@ function RecordAnswerSection({ mockInterviewQuestion, interviewData, activeQuest
               </div>
             )}
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => console.log(userAnswer)}
-          >
-            Show User Answer
-          </Button>
+        
         </div>
       </div>
     </div>
