@@ -34,6 +34,20 @@ export default function Home() {
             >
               Login
             </Button>
+            <a 
+              href="https://youtu.be/xgBxQa0C2Bw" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full mt-6"
+            >
+              <Button 
+                size="lg" 
+                variant="primary" 
+                className="w-full bg-blue-600 text-white hover:bg-blue-700 transition mt-7 duration-300"
+              >
+                Demo App
+              </Button>
+            </a>
           </div>
         )}
       </div>
