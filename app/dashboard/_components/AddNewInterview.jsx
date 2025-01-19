@@ -108,7 +108,7 @@ const AddNewInterview = () => {
                 <div className='my-3'>
                   <label>Years of Experience</label>
                   <Input
-                    placeholder='5'
+                    placeholder='Eg. 1'
                     type='number'
                     max='100'
                     min='0'
